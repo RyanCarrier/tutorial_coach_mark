@@ -16,6 +16,7 @@ class AnimatedFocusLight extends StatefulWidget {
     this.targets,
     this.targetsBuilder,
     this.targetCount,
+    this.onNewFocus,
     this.focus,
     this.finish,
     this.removeFocus,
@@ -34,18 +35,22 @@ class AnimatedFocusLight extends StatefulWidget {
     this.rootOverlay = false,
     this.initialFocus = 0,
     this.backgroundSemanticLabel,
-  })  : assert(targets != null || (targetsBuilder != null && targetCount != null),
+  })  : assert(
+            targets != null || (targetsBuilder != null && targetCount != null),
             'Either targets or both targetsBuilder and targetCount must be provided'),
         assert(!(targets != null && targetsBuilder != null),
             'Cannot provide both targets and targetsBuilder. Choose one approach.'),
-        assert(targets == null || targets.length > 0, 'targets list cannot be empty'),
-        assert(targetCount == null || targetCount > 0, 'targetCount must be greater than 0'),
+        assert(targets == null || targets.length > 0,
+            'targets list cannot be empty'),
+        assert(targetCount == null || targetCount > 0,
+            'targetCount must be greater than 0'),
         super(key: key);
 
   final List<TargetFocus>? targets;
   final TargetFocus? Function(int index, BuildContext context)? targetsBuilder;
   final int? targetCount;
   final Function(TargetFocus)? focus;
+  final Function(int)? onNewFocus;
   final FutureOr Function(TargetFocus)? clickTarget;
   final FutureOr Function(TargetFocus, TapDownDetails)?
       clickTargetWithTapPosition;
@@ -101,14 +106,14 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
       }
       return null;
     }
-    
+
     if (widget.targetsBuilder != null && widget.targetCount != null) {
       if (index >= 0 && index < widget.targetCount!) {
         return widget.targetsBuilder!(index, context);
       }
       return null;
     }
-    
+
     return null;
   }
 
@@ -188,9 +193,21 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
         _targetFocus,
         rootOverlay: widget.rootOverlay,
       );
-    } on NotFoundTargetException catch (e) {
-      debugPrint('Failed to refresh target position: ${e.toString()}');
-      return;
+    } on NotFoundTargetException catch (_) {
+      try {
+        var freshTarget = getTargetAt(currentFocusIndex);
+        if (freshTarget == null) {
+          rethrow;
+        }
+        targetPosition = getTargetCurrent(
+          freshTarget,
+          rootOverlay: widget.rootOverlay,
+        );
+        _targetFocus = freshTarget;
+      } on NotFoundTargetException catch (e) {
+        debugPrint('Failed to refresh target position: ${e.toString()}');
+        return;
+      }
     }
 
     if (targetPosition != null) {
@@ -273,6 +290,7 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
   void _goToFocus(int index) {
     if (index >= 0 && index < totalTargets) {
       _currentFocus = index;
+      widget.onNewFocus?.call(_currentFocus);
       _runFocus();
     } else {
       _finish();

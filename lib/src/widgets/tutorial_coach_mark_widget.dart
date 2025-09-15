@@ -81,20 +81,23 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
   final GlobalKey<AnimatedFocusLightState> _focusLightKey = GlobalKey();
   bool showContent = false;
   TargetFocus? currentTarget;
+  int currentFocusIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Runtime validation
     if (widget.targets == null && widget.targetsBuilder == null) {
       throw ArgumentError('Either targets or targetsBuilder must be provided');
     }
     if (widget.targets != null && widget.targetsBuilder != null) {
-      throw ArgumentError('Cannot provide both targets and targetsBuilder. Choose one approach.');
+      throw ArgumentError(
+          'Cannot provide both targets and targetsBuilder. Choose one approach.');
     }
     if (widget.targetsBuilder != null && widget.targetCount == null) {
-      throw ArgumentError('targetCount must be provided when using targetsBuilder');
+      throw ArgumentError(
+          'targetCount must be provided when using targetsBuilder');
     }
     if (widget.targets != null && widget.targets!.isEmpty) {
       throw ArgumentError('targets list cannot be empty');
@@ -102,7 +105,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
     if (widget.targetCount != null && widget.targetCount! <= 0) {
       throw ArgumentError('targetCount must be greater than 0');
     }
-    
+
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -136,14 +139,14 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       }
       return null;
     }
-    
+
     if (widget.targetsBuilder != null && widget.targetCount != null) {
       if (index >= 0 && index < widget.targetCount!) {
         return widget.targetsBuilder!(index, context);
       }
       return null;
     }
-    
+
     return null;
   }
 
@@ -152,7 +155,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
     if (widget.targets != null) {
       return widget.targets!;
     }
-    
+
     if (widget.targetsBuilder != null && widget.targetCount != null) {
       List<TargetFocus> targets = [];
       for (int i = 0; i < widget.targetCount!; i++) {
@@ -163,7 +166,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       }
       return targets;
     }
-    
+
     return [];
   }
 
@@ -207,6 +210,11 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
                 showContent = true;
               });
             },
+            onNewFocus: (focusIndex) {
+              setState(() {
+                currentFocusIndex = focusIndex;
+              });
+            },
             removeFocus: () {
               setState(() {
                 showContent = false;
@@ -228,21 +236,33 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
     if (currentTarget == null) {
       return const SizedBox.shrink();
     }
-
     List<Widget> children = <Widget>[];
-
     TargetPosition? target;
     try {
       target = getTargetCurrent(
         currentTarget!,
         rootOverlay: widget.rootOverlay,
       );
-    } on NotFoundTargetException catch (e) {
-      skip();
+    } on NotFoundTargetException catch (_) {
+      try {
+        var freshTarget = getTargetAt(currentFocusIndex);
+        if (freshTarget == null) {
+          rethrow;
+        }
+        target = getTargetCurrent(
+          freshTarget,
+          rootOverlay: widget.rootOverlay,
+        );
+        currentTarget = freshTarget;
+      } on NotFoundTargetException catch (e) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          skip();
+        });
 
-      ///error tutorial exit
-      debugPrint("  error>>>>> e ${e.toString()}");
-      //debugPrintStack(stackTrace: s);
+        ///error tutorial exit
+        debugPrint("  error>>>>> e ${e.toString()}");
+        //debugPrintStack(stackTrace: s);
+      }
     }
 
     if (target == null) {
