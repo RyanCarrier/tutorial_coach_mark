@@ -48,7 +48,22 @@ export 'package:tutorial_coach_mark/src/util.dart';
 
 class TutorialCoachMark {
   /// List of targets to focus during the tutorial sequence.
-  final List<TargetFocus> targets;
+  /// Either [targets] or [targetsBuilder] must be provided, but not both.
+  final List<TargetFocus>? targets;
+
+  /// Builder function that creates targets dynamically based on index and context.
+  /// Either [targets] or [targetsBuilder] must be provided, but not both.
+  /// 
+  /// The builder function receives:
+  /// - [index]: The current target index in the tutorial sequence
+  /// - [context]: The current build context for accessing widget state
+  /// 
+  /// Returns the [TargetFocus] for the given index, or null if the index is out of range.
+  final TargetFocus? Function(int index, BuildContext context)? targetsBuilder;
+
+  /// Total number of targets in the tutorial sequence when using [targetsBuilder].
+  /// This must be provided when using [targetsBuilder] to know how many targets exist.
+  final int? targetCount;
 
   /// Callback executed when a target area is tapped.
   final FutureOr<void> Function(TargetFocus)? onClickTarget;
@@ -132,7 +147,9 @@ class TutorialCoachMark {
   /// Creates a tutorial coach mark with the specified configuration.
   ///
   /// Parameters:
-  /// - [targets]: List of target focuses to highlight during the tutorial. Required.
+  /// - [targets]: List of target focuses to highlight during the tutorial. Either [targets] or [targetsBuilder] must be provided.
+  /// - [targetsBuilder]: Builder function that creates targets dynamically. Either [targets] or [targetsBuilder] must be provided.
+  /// - [targetCount]: Total number of targets when using [targetsBuilder]. Required when using [targetsBuilder].
   /// - [colorShadow]: Color of the shadow overlay. Default is [Colors.black].
   /// - [onClickTarget]: Callback when target area is tapped.
   /// - [onClickTargetWithTapPosition]: Callback when target is tapped, provides tap details.
@@ -157,7 +174,9 @@ class TutorialCoachMark {
   /// - [backgroundSemanticLabel]: Semantic label for background overlay.
   /// - [disableBackButton]: Whether to disable device back button. Default is false.
   TutorialCoachMark({
-    required this.targets,
+    this.targets,
+    this.targetsBuilder,
+    this.targetCount,
     this.colorShadow = Colors.black,
     this.onClickTarget,
     this.onClickTargetWithTapPosition,
@@ -181,7 +200,11 @@ class TutorialCoachMark {
     this.initialFocus = 0,
     this.backgroundSemanticLabel,
     this.disableBackButton = false,
-  }) : assert(opacityShadow >= 0 && opacityShadow <= 1);
+  }) : assert(opacityShadow >= 0 && opacityShadow <= 1),
+       assert(targets != null || (targetsBuilder != null && targetCount != null),
+           'Either targets or both targetsBuilder and targetCount must be provided'),
+       assert(!(targets != null && targetsBuilder != null),
+           'Cannot provide both targets and targetsBuilder. Choose one approach.');
 
   OverlayEntry _buildOverlay({bool rootOverlay = false}) {
     return OverlayEntry(
@@ -189,6 +212,8 @@ class TutorialCoachMark {
         return TutorialCoachMarkWidget(
           key: _widgetKey,
           targets: targets,
+          targetsBuilder: targetsBuilder,
+          targetCount: targetCount,
           clickTarget: onClickTarget,
           onClickTargetWithTapPosition: onClickTargetWithTapPosition,
           clickOverlay: onClickOverlay,
@@ -322,6 +347,29 @@ class TutorialCoachMark {
 
   /// Internal widget key for accessing tutorial state.
   GlobalKey<TutorialCoachMarkWidgetState> get widgetKey => _widgetKey;
+
+  /// Gets the total number of targets in the tutorial sequence.
+  int get totalTargets => targets?.length ?? targetCount ?? 0;
+
+  /// Gets a target at the specified index using either the static list or the builder function.
+  /// Returns null if the index is out of range or if the builder returns null.
+  TargetFocus? getTargetAt(int index, BuildContext context) {
+    if (targets != null) {
+      if (index >= 0 && index < targets!.length) {
+        return targets![index];
+      }
+      return null;
+    }
+    
+    if (targetsBuilder != null && targetCount != null) {
+      if (index >= 0 && index < targetCount!) {
+        return targetsBuilder!(index, context);
+      }
+      return null;
+    }
+    
+    return null;
+  }
 
   /// Advances to the next target in the tutorial sequence.
   void next() => _widgetKey.currentState?.next();

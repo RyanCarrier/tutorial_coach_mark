@@ -11,7 +11,9 @@ import 'package:tutorial_coach_mark/src/widgets/animated_focus_light.dart';
 class TutorialCoachMarkWidget extends StatefulWidget {
   const TutorialCoachMarkWidget({
     Key? key,
-    required this.targets,
+    this.targets,
+    this.targetsBuilder,
+    this.targetCount,
     this.finish,
     this.paddingFocus = 10,
     this.clickTarget,
@@ -36,10 +38,13 @@ class TutorialCoachMarkWidget extends StatefulWidget {
     this.imageFilter,
     this.backgroundSemanticLabel,
     this.initialFocus = 0,
-  })  : assert(targets.length > 0),
+  })  : assert(targets != null || targetsBuilder != null),
+        assert(targetCount == null || targetCount > 0),
         super(key: key);
 
-  final List<TargetFocus> targets;
+  final List<TargetFocus>? targets;
+  final TargetFocus? Function(int index, BuildContext context)? targetsBuilder;
+  final int? targetCount;
   final FutureOr Function(TargetFocus)? clickTarget;
   final FutureOr Function(TargetFocus, TapDownDetails)?
       onClickTargetWithTapPosition;
@@ -80,6 +85,24 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
   @override
   void initState() {
     super.initState();
+    
+    // Runtime validation
+    if (widget.targets == null && widget.targetsBuilder == null) {
+      throw ArgumentError('Either targets or targetsBuilder must be provided');
+    }
+    if (widget.targets != null && widget.targetsBuilder != null) {
+      throw ArgumentError('Cannot provide both targets and targetsBuilder. Choose one approach.');
+    }
+    if (widget.targetsBuilder != null && widget.targetCount == null) {
+      throw ArgumentError('targetCount must be provided when using targetsBuilder');
+    }
+    if (widget.targets != null && widget.targets!.isEmpty) {
+      throw ArgumentError('targets list cannot be empty');
+    }
+    if (widget.targetCount != null && widget.targetCount! <= 0) {
+      throw ArgumentError('targetCount must be greater than 0');
+    }
+    
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -101,6 +124,49 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
     safeSetState(() {});
   }
 
+  /// Gets the total number of targets in the tutorial sequence.
+  int get totalTargets => widget.targets?.length ?? widget.targetCount ?? 0;
+
+  /// Gets a target at the specified index using either the static list or the builder function.
+  /// Returns null if the index is out of range or if the builder returns null.
+  TargetFocus? getTargetAt(int index) {
+    if (widget.targets != null) {
+      if (index >= 0 && index < widget.targets!.length) {
+        return widget.targets![index];
+      }
+      return null;
+    }
+    
+    if (widget.targetsBuilder != null && widget.targetCount != null) {
+      if (index >= 0 && index < widget.targetCount!) {
+        return widget.targetsBuilder!(index, context);
+      }
+      return null;
+    }
+    
+    return null;
+  }
+
+  /// Gets all targets as a list. This method builds targets on-demand when using a builder.
+  List<TargetFocus> get allTargets {
+    if (widget.targets != null) {
+      return widget.targets!;
+    }
+    
+    if (widget.targetsBuilder != null && widget.targetCount != null) {
+      List<TargetFocus> targets = [];
+      for (int i = 0; i < widget.targetCount!; i++) {
+        final target = widget.targetsBuilder!(i, context);
+        if (target != null) {
+          targets.add(target);
+        }
+      }
+      return targets;
+    }
+    
+    return [];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -111,6 +177,8 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
             key: _focusLightKey,
             initialFocus: widget.initialFocus,
             targets: widget.targets,
+            targetsBuilder: widget.targetsBuilder,
+            targetCount: widget.targetCount,
             finish: widget.finish,
             paddingFocus: widget.paddingFocus,
             colorShadow: widget.colorShadow,
@@ -288,8 +356,8 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
     }
 
     if (currentTarget != null) {
-      final targetIndex = widget.targets.indexOf(currentTarget!);
-      isLastTarget = targetIndex == widget.targets.length - 1;
+      final currentIndex = _focusLightKey.currentState?.currentFocusIndex ?? 0;
+      isLastTarget = currentIndex == totalTargets - 1;
     }
 
     if (isLastTarget && !widget.showSkipInLastTarget) {

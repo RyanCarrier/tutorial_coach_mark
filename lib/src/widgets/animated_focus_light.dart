@@ -13,7 +13,9 @@ import 'package:tutorial_coach_mark/src/util.dart';
 class AnimatedFocusLight extends StatefulWidget {
   const AnimatedFocusLight({
     Key? key,
-    required this.targets,
+    this.targets,
+    this.targetsBuilder,
+    this.targetCount,
     this.focus,
     this.finish,
     this.removeFocus,
@@ -32,10 +34,17 @@ class AnimatedFocusLight extends StatefulWidget {
     this.rootOverlay = false,
     this.initialFocus = 0,
     this.backgroundSemanticLabel,
-  })  : assert(targets.length > 0),
+  })  : assert(targets != null || (targetsBuilder != null && targetCount != null),
+            'Either targets or both targetsBuilder and targetCount must be provided'),
+        assert(!(targets != null && targetsBuilder != null),
+            'Cannot provide both targets and targetsBuilder. Choose one approach.'),
+        assert(targets == null || targets.length > 0, 'targets list cannot be empty'),
+        assert(targetCount == null || targetCount > 0, 'targetCount must be greater than 0'),
         super(key: key);
 
-  final List<TargetFocus> targets;
+  final List<TargetFocus>? targets;
+  final TargetFocus? Function(int index, BuildContext context)? targetsBuilder;
+  final int? targetCount;
   final Function(TargetFocus)? focus;
   final FutureOr Function(TargetFocus)? clickTarget;
   final FutureOr Function(TargetFocus, TapDownDetails)?
@@ -80,6 +89,32 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
   int nextIndex = 0;
   bool _isAnimating = true;
 
+  /// Gets the total number of targets in the tutorial sequence.
+  int get totalTargets => widget.targets?.length ?? widget.targetCount ?? 0;
+
+  /// Gets a target at the specified index using either the static list or the builder function.
+  /// Returns null if the index is out of range or if the builder returns null.
+  TargetFocus? getTargetAt(int index) {
+    if (widget.targets != null) {
+      if (index >= 0 && index < widget.targets!.length) {
+        return widget.targets![index];
+      }
+      return null;
+    }
+    
+    if (widget.targetsBuilder != null && widget.targetCount != null) {
+      if (index >= 0 && index < widget.targetCount!) {
+        return widget.targetsBuilder!(index, context);
+      }
+      return null;
+    }
+    
+    return null;
+  }
+
+  /// Gets the current focus index.
+  int get currentFocusIndex => _currentFocus;
+
   Future<void> _revertAnimation() async {
     _isAnimating = true;
     _controller.duration = unFocusDuration;
@@ -103,7 +138,11 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
   void initState() {
     super.initState();
     _currentFocus = widget.initialFocus;
-    _targetFocus = widget.targets[_currentFocus];
+    final initialTarget = getTargetAt(_currentFocus);
+    if (initialTarget == null) {
+      throw StateError('Initial target at index $_currentFocus not found');
+    }
+    _targetFocus = initialTarget;
     _controller = AnimationController(
       vsync: this,
       duration: focusDuration,
@@ -187,7 +226,12 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
 
   Future<void> _runFocus() async {
     if (_currentFocus < 0) return;
-    _targetFocus = widget.targets[_currentFocus];
+    final target = getTargetAt(_currentFocus);
+    if (target == null) {
+      _finish();
+      return;
+    }
+    _targetFocus = target;
 
     _controller.duration = focusDuration;
 
@@ -227,7 +271,7 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
   }
 
   void _goToFocus(int index) {
-    if (index >= 0 && index < widget.targets.length) {
+    if (index >= 0 && index < totalTargets) {
       _currentFocus = index;
       _runFocus();
     } else {

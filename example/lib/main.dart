@@ -32,6 +32,7 @@ class MyHomePage extends StatefulWidget {
 
 class MyHomePageState extends State<MyHomePage> {
   late TutorialCoachMark tutorialCoachMark;
+  bool _useBuilder = false;
 
   GlobalKey keyButton = GlobalKey();
   GlobalKey keyButton1 = GlobalKey();
@@ -93,11 +94,26 @@ class MyHomePageState extends State<MyHomePage> {
                   width: MediaQuery.of(context).size.width - 50,
                   child: Align(
                     alignment: Alignment.center,
-                    child: ElevatedButton(
-                      child: const Icon(Icons.remove_red_eye),
-                      onPressed: () {
-                        showTutorial();
-                      },
+                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElevatedButton(
+                          child: const Icon(Icons.remove_red_eye),
+                          onPressed: () {
+                            showTutorial();
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          child: Text(_useBuilder ? 'Use Static' : 'Use Builder'),
+                          onPressed: () {
+                            setState(() {
+                              _useBuilder = !_useBuilder;
+                              createTutorial();
+                            });
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -226,32 +242,86 @@ class MyHomePageState extends State<MyHomePage> {
   }
 
   void createTutorial() {
-    tutorialCoachMark = TutorialCoachMark(
-      targets: _createTargets(),
-      colorShadow: Colors.red,
-      textSkip: "SKIP",
-      paddingFocus: 10,
-      opacityShadow: 0.5,
-      imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-      onFinish: () {
-        print("finish");
-      },
-      onClickTarget: (target) {
-        print('onClickTarget: $target');
-      },
-      onClickTargetWithTapPosition: (target, tapDetails) {
-        print("target: $target");
-        print(
-            "clicked at position local: ${tapDetails.localPosition} - global: ${tapDetails.globalPosition}");
-      },
-      onClickOverlay: (target) {
-        print('onClickOverlay: $target');
-      },
-      onSkip: () {
-        print("skip");
-        return true;
-      },
-    );
+    if (_useBuilder) {
+      tutorialCoachMark = TutorialCoachMark(
+        targetsBuilder: (index, context) {
+          final targets = _createTargets();
+          if (index >= 0 && index < targets.length) {
+            final target = targets[index];
+            // Demonstrate dynamic modification - change the color based on index
+            return TargetFocus(
+              identify: "${target.identify} (builder)",
+              keyTarget: target.keyTarget,
+              targetPosition: target.targetPosition,
+              contents: target.contents,
+              shape: target.shape,
+              radius: target.radius,
+              borderSide: target.borderSide,
+              color: index.isEven ? Colors.green : Colors.purple,
+              enableOverlayTab: target.enableOverlayTab,
+              enableTargetTab: target.enableTargetTab,
+              alignSkip: target.alignSkip,
+              paddingFocus: target.paddingFocus,
+              focusAnimationDuration: target.focusAnimationDuration,
+              unFocusAnimationDuration: target.unFocusAnimationDuration,
+              pulseVariation: target.pulseVariation,
+            );
+          }
+          return null;
+        },
+        targetCount: _createTargets().length,
+        colorShadow: Colors.red,
+        textSkip: "SKIP",
+        paddingFocus: 10,
+        opacityShadow: 0.5,
+        imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        onFinish: () {
+          print("finish");
+        },
+        onClickTarget: (target) {
+          print('onClickTarget: $target');
+        },
+        onClickTargetWithTapPosition: (target, tapDetails) {
+          print("target: $target");
+          print(
+              "clicked at position local: ${tapDetails.localPosition} - global: ${tapDetails.globalPosition}");
+        },
+        onClickOverlay: (target) {
+          print('onClickOverlay: $target');
+        },
+        onSkip: () {
+          print("skip");
+          return true;
+        },
+      );
+    } else {
+      tutorialCoachMark = TutorialCoachMark(
+        targets: _createTargets(),
+        colorShadow: Colors.red,
+        textSkip: "SKIP",
+        paddingFocus: 10,
+        opacityShadow: 0.5,
+        imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        onFinish: () {
+          print("finish");
+        },
+        onClickTarget: (target) {
+          print('onClickTarget: $target');
+        },
+        onClickTargetWithTapPosition: (target, tapDetails) {
+          print("target: $target");
+          print(
+              "clicked at position local: ${tapDetails.localPosition} - global: ${tapDetails.globalPosition}");
+        },
+        onClickOverlay: (target) {
+          print('onClickOverlay: $target');
+        },
+        onSkip: () {
+          print("skip");
+          return true;
+        },
+      );
+    }
   }
 
   List<TargetFocus> _createTargets() {
