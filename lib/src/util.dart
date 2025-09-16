@@ -80,6 +80,9 @@ abstract class TutorialCoachMarkController {
 
   /// Skips the entire tutorial.
   void skip();
+
+  /// Refreshes the current step, recalculating positions and layouts.
+  void refresh();
 }
 
 /// Extension on [State] to provide safe state updates.
