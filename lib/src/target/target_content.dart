@@ -114,7 +114,7 @@ typedef TargetContentBuilder = Widget Function(
 /// ```
 class TargetContent {
   TargetContent({
-    this.align = ContentAlign.bottom,
+    this.align = ContentAlign.auto,
     this.padding = const EdgeInsets.all(20.0),
     this.child,
     this.customPosition,
