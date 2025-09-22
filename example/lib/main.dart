@@ -622,14 +622,14 @@ class MyHomePageState extends State<MyHomePage> {
         shape: ShapeLightFocus.Circle,
         contents: [
           TargetContent(
-            align: ContentAlign.top,
+            align: ContentAlign.auto,
             child: const Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Padding(
                   padding: EdgeInsets.only(bottom: 20.0),
                   child: Text(
-                    "Multiples contents",
+                    "Auto Alignment Demo",
                     style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -637,7 +637,7 @@ class MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
                 Text(
-                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
+                  "This content uses auto alignment - it will be positioned automatically based on available space!",
                   style: TextStyle(color: Colors.white),
                 ),
               ],
@@ -651,7 +651,7 @@ class MyHomePageState extends State<MyHomePage> {
                   Padding(
                     padding: EdgeInsets.only(bottom: 20.0),
                     child: Text(
-                      "Multiples contents",
+                      "Fixed Bottom Content",
                       style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -659,7 +659,7 @@ class MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                   Text(
-                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
+                    "This content is always at the bottom for comparison.",
                     style: TextStyle(color: Colors.white),
                   ),
                 ],

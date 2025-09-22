@@ -55,6 +55,10 @@ enum ContentAlign {
   /// Position content to the right of the target widget.
   right,
 
+  /// Automatically detect the target position and place content on the opposite side
+  /// with the most available space.
+  auto,
+
   /// Use custom positioning with [CustomTargetContentPosition].
   custom
 }
@@ -85,6 +89,14 @@ typedef TargetContentBuilder = Widget Function(
 ///       Text("This is your dashboard."),
 ///     ],
 ///   ),
+/// )
+/// ```
+///
+/// Example with auto alignment:
+/// ```dart
+/// TargetContent(
+///   align: ContentAlign.auto,
+///   child: Text("Content will be positioned automatically!"),
 /// )
 /// ```
 ///

@@ -235,6 +235,31 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
     );
   }
 
+  /// Determines the best alignment for auto positioning based on available space.
+  @visibleForTesting
+  ContentAlign getAutoAlignment(TargetPosition target, Size screenSize) {
+    final targetCenter = target.center;
+    
+    // Calculate available space on each side
+    final spaceTop = targetCenter.dy;
+    final spaceBottom = screenSize.height - targetCenter.dy;
+    final spaceLeft = targetCenter.dx;
+    final spaceRight = screenSize.width - targetCenter.dx;
+    
+    // Find the side with the most space
+    final maxSpace = [spaceTop, spaceBottom, spaceLeft, spaceRight].reduce((a, b) => a > b ? a : b);
+    
+    if (maxSpace == spaceTop) {
+      return ContentAlign.top;
+    } else if (maxSpace == spaceBottom) {
+      return ContentAlign.bottom;
+    } else if (maxSpace == spaceLeft) {
+      return ContentAlign.left;
+    } else {
+      return ContentAlign.right;
+    }
+  }
+
   Widget _buildContents() {
     if (currentTarget == null) {
       return const SizedBox.shrink();
@@ -306,7 +331,14 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
     final ancestorBox = context.findRenderObject() as RenderBox;
 
     children = currentTarget!.contents!.map<Widget>((i) {
-      switch (i.align) {
+      ContentAlign effectiveAlign = i.align;
+      
+      // Handle auto alignment
+      if (i.align == ContentAlign.auto) {
+        effectiveAlign = getAutoAlignment(target!, ancestorBox.size);
+      }
+      
+      switch (effectiveAlign) {
         case ContentAlign.bottom:
           {
             width = ancestorBox.size.width;
@@ -339,6 +371,9 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
             width = ancestorBox.size.width - left!;
           }
           break;
+        case ContentAlign.auto:
+          // This should never happen as we resolve auto above
+          throw StateError('Auto alignment should have been resolved');
         case ContentAlign.custom:
           {
             left = i.customPosition!.left;
