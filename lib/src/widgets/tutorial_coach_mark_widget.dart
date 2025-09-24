@@ -238,17 +238,21 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
   /// Determines the best alignment for auto positioning based on available space.
   @visibleForTesting
   ContentAlign getAutoAlignment(TargetPosition target, Size screenSize) {
-    final targetCenter = target.center;
-    
-    // Calculate available space on each side
-    final spaceTop = targetCenter.dy;
-    final spaceBottom = screenSize.height - targetCenter.dy;
-    final spaceLeft = targetCenter.dx;
-    final spaceRight = screenSize.width - targetCenter.dx;
-    
+    final targetTop = target.offset.dy;
+    final targetBottom = target.offset.dy + target.size.height;
+    final targetLeft = target.offset.dx;
+    final targetRight = target.offset.dx + target.size.width;
+
+    // Calculate available space on each side, clamping negatives to zero
+    final spaceTop = targetTop.clamp(0, double.infinity);
+    final spaceBottom = (screenSize.height - targetBottom).clamp(0, double.infinity);
+    final spaceLeft = targetLeft.clamp(0, double.infinity);
+    final spaceRight = (screenSize.width - targetRight).clamp(0, double.infinity);
+
     // Find the side with the most space
-    final maxSpace = [spaceTop, spaceBottom, spaceLeft, spaceRight].reduce((a, b) => a > b ? a : b);
-    
+    final maxSpace = [spaceTop, spaceBottom, spaceLeft, spaceRight]
+        .reduce((a, b) => a > b ? a : b);
+
     if (maxSpace == spaceTop) {
       return ContentAlign.top;
     } else if (maxSpace == spaceBottom) {
