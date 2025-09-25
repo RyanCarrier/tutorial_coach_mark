@@ -245,9 +245,11 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
 
     // Calculate available space on each side, clamping negatives to zero
     final spaceTop = targetTop.clamp(0, double.infinity);
-    final spaceBottom = (screenSize.height - targetBottom).clamp(0, double.infinity);
+    final spaceBottom =
+        (screenSize.height - targetBottom).clamp(0, double.infinity);
     final spaceLeft = targetLeft.clamp(0, double.infinity);
-    final spaceRight = (screenSize.width - targetRight).clamp(0, double.infinity);
+    final spaceRight =
+        (screenSize.width - targetRight).clamp(0, double.infinity);
 
     // Find the side with the most space
     final maxSpace = [spaceTop, spaceBottom, spaceLeft, spaceRight]
@@ -336,12 +338,13 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
 
     children = currentTarget!.contents!.map<Widget>((i) {
       ContentAlign effectiveAlign = i.align;
-      
+      bool isAuto = i.align == ContentAlign.auto;
+
       // Handle auto alignment
-      if (i.align == ContentAlign.auto) {
+      if (isAuto) {
         effectiveAlign = getAutoAlignment(target!, ancestorBox.size);
       }
-      
+
       switch (effectiveAlign) {
         case ContentAlign.bottom:
           {
@@ -363,14 +366,18 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           {
             width = positioned.dx - haloWidth;
             left = 0;
-            top = positioned.dy - target!.size.height / 2 - haloHeight;
+            top = isAuto
+                ? null
+                : positioned.dy - target!.size.height / 2 - haloHeight;
             bottom = null;
           }
           break;
         case ContentAlign.right:
           {
             left = positioned.dx + haloWidth;
-            top = positioned.dy - target!.size.height / 2 - haloHeight;
+            top = isAuto
+                ? null
+                : positioned.dy - target!.size.height / 2 - haloHeight;
             bottom = null;
             width = ancestorBox.size.width - left!;
           }
@@ -388,21 +395,30 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           }
           break;
       }
+      var child = i.builder?.call(context, this) ??
+          (i.child ?? const SizedBox.shrink());
 
-      return Positioned(
-        top: top,
-        bottom: bottom,
-        left: left,
-        right: right,
-        child: SizedBox(
-          width: width,
-          child: Padding(
-            padding: i.padding,
-            child: i.builder?.call(context, this) ??
-                (i.child ?? const SizedBox.shrink()),
-          ),
-        ),
-      );
+      return isAuto
+          ? Align(
+              alignment: effectiveAlign.toAlignment(),
+              child: Padding(
+                padding: i.padding,
+                child: child,
+              ),
+            )
+          : Positioned(
+              top: top,
+              bottom: bottom,
+              left: left,
+              right: right,
+              child: SizedBox(
+                width: width,
+                child: Padding(
+                  padding: i.padding,
+                  child: child,
+                ),
+              ),
+            );
     }).toList();
 
     return Stack(

@@ -63,6 +63,26 @@ enum ContentAlign {
   custom
 }
 
+extension ContentAlignToAlignmentExtension on ContentAlign {
+  /// Converts [ContentAlign] to corresponding [Alignment].
+  Alignment toAlignment() {
+    switch (this) {
+      case ContentAlign.top:
+        return Alignment.topCenter;
+      case ContentAlign.bottom:
+        return Alignment.bottomCenter;
+      case ContentAlign.left:
+        return Alignment.centerLeft;
+      case ContentAlign.right:
+        return Alignment.centerRight;
+      case ContentAlign.auto:
+        return Alignment.center; // Auto does not have a fixed alignment
+      case ContentAlign.custom:
+        return Alignment.center; // Custom does not have a fixed alignment
+    }
+  }
+}
+
 /// Builder function for creating dynamic tutorial content.
 ///
 /// Provides access to [BuildContext] and [TutorialCoachMarkController]
