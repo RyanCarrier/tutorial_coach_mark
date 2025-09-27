@@ -417,6 +417,7 @@ class AnimatedStaticFocusLightState extends AnimatedFocusLightState {
                   left: left,
                   top: top,
                   child: InkWell(
+                    key: const ValueKey("tutorial_target_focus"),
                     borderRadius: _betBorderRadiusTarget(),
                     onTapDown: _tapHandlerForPosition,
                     onTap: _onTargetTap,
