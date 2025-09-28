@@ -518,6 +518,7 @@ class AnimatedPulseFocusLightState extends AnimatedFocusLightState {
                       left: left,
                       top: top,
                       child: InkWell(
+                        key: const ValueKey("tutorial_target_focus"),
                         borderRadius: _betBorderRadiusTarget(),
                         onTap: _onTargetTap,
                         onTapDown: _tapHandlerForPosition,
