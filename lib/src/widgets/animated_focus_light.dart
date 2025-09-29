@@ -245,6 +245,8 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
     if (_currentFocus < 0) return;
     final target = getTargetAt(_currentFocus);
     if (target == null) {
+      debugPrint(
+          'Target at index $_currentFocus not found. Finishing tutorial.');
       _finish();
       return;
     }
@@ -264,6 +266,8 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
     }
 
     if (targetPosition == null) {
+      debugPrint(
+          'Target widget for focus not found. Finishing tutorial at index $_currentFocus.');
       _finish();
       return;
     }
@@ -293,6 +297,7 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
       widget.onNewFocus?.call(_currentFocus);
       _runFocus();
     } else {
+      debugPrint('No more targets ($index/$totalTargets). Finishing tutorial.');
       _finish();
     }
   }
