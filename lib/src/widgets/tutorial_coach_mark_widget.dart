@@ -344,6 +344,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       if (isAuto) {
         effectiveAlign = getAutoAlignment(target!, ancestorBox.size);
       }
+      isAuto = false;
 
       switch (effectiveAlign) {
         case ContentAlign.bottom:
@@ -398,27 +399,28 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       var child = i.builder?.call(context, this) ??
           (i.child ?? const SizedBox.shrink());
 
-      return isAuto
-          ? Align(
-              alignment: effectiveAlign.toAlignment(),
-              child: Padding(
-                padding: i.padding,
-                child: child,
-              ),
-            )
-          : Positioned(
-              top: top,
-              bottom: bottom,
-              left: left,
-              right: right,
-              child: SizedBox(
-                width: width,
-                child: Padding(
-                  padding: i.padding,
-                  child: child,
-                ),
-              ),
-            );
+      // return isAuto
+      //     ? Align(
+      //         alignment: effectiveAlign.toAlignment(),
+      //         child: Padding(
+      //           padding: i.padding,
+      //           child: child,
+      //         ),
+      //       )
+      //     :
+      return Positioned(
+        top: top,
+        bottom: bottom,
+        left: left,
+        right: right,
+        child: SizedBox(
+          width: width,
+          child: Padding(
+            padding: i.padding,
+            child: child,
+          ),
+        ),
+      );
     }).toList();
 
     return Stack(
