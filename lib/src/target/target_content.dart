@@ -41,6 +41,37 @@ class CustomTargetContentPosition {
   }
 }
 
+/// Defines minimum space requirements for auto alignment.
+///
+/// When using [ContentAlign.auto], this class specifies the minimum amount of
+/// space that must be available on a side for content to be positioned there.
+/// If no side meets the requirements, the content will be centered.
+///
+/// Example:
+/// ```dart
+/// AutoAlignmentMinSpace(
+///   horizontal: 200.0,  // Need 200px horizontal space for left/right
+///   vertical: 150.0,    // Need 150px vertical space for top/bottom
+/// )
+/// ```
+class AutoAlignmentMinSpace {
+  const AutoAlignmentMinSpace({
+    this.horizontal,
+    this.vertical,
+  });
+
+  /// Minimum horizontal space required for left/right positioning.
+  final double? horizontal;
+
+  /// Minimum vertical space required for top/bottom positioning.
+  final double? vertical;
+
+  @override
+  String toString() {
+    return 'AutoAlignmentMinSpace{horizontal: $horizontal, vertical: $vertical}';
+  }
+}
+
 /// Defines where the content should be positioned relative to the target widget.
 enum ContentAlign {
   /// Position content above the target widget.
@@ -58,6 +89,9 @@ enum ContentAlign {
   /// Automatically detect the target position and place content on the opposite side
   /// with the most available space.
   auto,
+
+  /// Center the content on the screen.
+  center,
 
   /// Use custom positioning with [CustomTargetContentPosition].
   custom
@@ -77,6 +111,8 @@ extension ContentAlignToAlignmentExtension on ContentAlign {
         return Alignment.centerRight;
       case ContentAlign.auto:
         return Alignment.center; // Auto does not have a fixed alignment
+      case ContentAlign.center:
+        return Alignment.center;
       case ContentAlign.custom:
         return Alignment.center; // Custom does not have a fixed alignment
     }
@@ -120,6 +156,18 @@ typedef TargetContentBuilder = Widget Function(
 /// )
 /// ```
 ///
+/// Example with auto alignment and minimum space requirement:
+/// ```dart
+/// TargetContent(
+///   align: ContentAlign.auto,
+///   autoAlignmentMinSpace: AutoAlignmentMinSpace(
+///     horizontal: 200.0,
+///     vertical: 150.0,
+///   ),
+///   child: Text("Content will center if space requirements aren't met!"),
+/// )
+/// ```
+///
 /// Example with builder:
 /// ```dart
 /// TargetContent(
@@ -139,6 +187,7 @@ class TargetContent {
     this.child,
     this.customPosition,
     this.builder,
+    this.autoAlignmentMinSpace,
   }) : assert(!(align == ContentAlign.custom && customPosition == null));
 
   /// Where to position this content relative to the target widget.
@@ -151,6 +200,13 @@ class TargetContent {
   /// Custom positioning when [align] is set to [ContentAlign.custom].
   /// Must be provided when using custom alignment.
   final CustomTargetContentPosition? customPosition;
+
+  /// Minimum space requirements for auto alignment positioning.
+  /// When using [ContentAlign.auto], this specifies the minimum horizontal
+  /// and/or vertical space required for positioning content on each side.
+  /// If no side meets the requirements, the content will be centered.
+  /// If null, no minimum is enforced.
+  final AutoAlignmentMinSpace? autoAlignmentMinSpace;
 
   /// Static widget to display as content.
   /// Either [child] or [builder] must be provided, but not both.

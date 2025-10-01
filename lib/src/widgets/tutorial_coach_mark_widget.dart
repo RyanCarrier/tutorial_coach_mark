@@ -236,34 +236,66 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
   }
 
   /// Determines the best alignment for auto positioning based on available space.
+  ///
+  /// If [minSpace] is provided and no side meets the minimum space requirements,
+  /// returns [ContentAlign.center] to center the content on the screen.
   @visibleForTesting
-  ContentAlign getAutoAlignment(TargetPosition target, Size screenSize) {
+  ContentAlign getAutoAlignment(
+    TargetPosition target,
+    Size screenSize, {
+    AutoAlignmentMinSpace? minSpace,
+  }) {
     final targetTop = target.offset.dy;
     final targetBottom = target.offset.dy + target.size.height;
     final targetLeft = target.offset.dx;
     final targetRight = target.offset.dx + target.size.width;
 
     // Calculate available space on each side, clamping negatives to zero
-    final spaceTop = targetTop.clamp(0, double.infinity);
+    final spaceTop = targetTop.clamp(0, double.infinity).toDouble();
     final spaceBottom =
-        (screenSize.height - targetBottom).clamp(0, double.infinity);
-    final spaceLeft = targetLeft.clamp(0, double.infinity);
+        (screenSize.height - targetBottom).clamp(0, double.infinity).toDouble();
+    final spaceLeft = targetLeft.clamp(0, double.infinity).toDouble();
     final spaceRight =
-        (screenSize.width - targetRight).clamp(0, double.infinity);
+        (screenSize.width - targetRight).clamp(0, double.infinity).toDouble();
 
-    // Find the side with the most space
-    final maxSpace = [spaceTop, spaceBottom, spaceLeft, spaceRight]
-        .reduce((a, b) => a > b ? a : b);
+    // Build list of valid sides that meet minimum space requirements
+    List<MapEntry<ContentAlign, double>> validSides = [];
 
-    if (maxSpace == spaceTop) {
-      return ContentAlign.top;
-    } else if (maxSpace == spaceBottom) {
-      return ContentAlign.bottom;
-    } else if (maxSpace == spaceLeft) {
-      return ContentAlign.left;
+    if (minSpace == null) {
+      // No minimum requirements, all sides are valid
+      validSides = [
+        MapEntry(ContentAlign.top, spaceTop),
+        MapEntry(ContentAlign.bottom, spaceBottom),
+        MapEntry(ContentAlign.left, spaceLeft),
+        MapEntry(ContentAlign.right, spaceRight),
+      ];
     } else {
-      return ContentAlign.right;
+      // Check each side against minimum requirements
+      final minVertical = minSpace.vertical;
+      final minHorizontal = minSpace.horizontal;
+
+      if (minVertical == null || spaceTop >= minVertical) {
+        validSides.add(MapEntry(ContentAlign.top, spaceTop));
+      }
+      if (minVertical == null || spaceBottom >= minVertical) {
+        validSides.add(MapEntry(ContentAlign.bottom, spaceBottom));
+      }
+      if (minHorizontal == null || spaceLeft >= minHorizontal) {
+        validSides.add(MapEntry(ContentAlign.left, spaceLeft));
+      }
+      if (minHorizontal == null || spaceRight >= minHorizontal) {
+        validSides.add(MapEntry(ContentAlign.right, spaceRight));
+      }
     }
+
+    // If no sides meet the requirements, center the content
+    if (validSides.isEmpty) {
+      return ContentAlign.center;
+    }
+
+    // Find the side with the most space among valid sides
+    final bestSide = validSides.reduce((a, b) => a.value > b.value ? a : b);
+    return bestSide.key;
   }
 
   Widget _buildContents() {
@@ -342,7 +374,11 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
 
       // Handle auto alignment
       if (isAuto) {
-        effectiveAlign = getAutoAlignment(target!, ancestorBox.size);
+        effectiveAlign = getAutoAlignment(
+          target!,
+          ancestorBox.size,
+          minSpace: i.autoAlignmentMinSpace,
+        );
       }
       isAuto = false;
 
@@ -386,6 +422,16 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
         case ContentAlign.auto:
           // This should never happen as we resolve auto above
           throw StateError('Auto alignment should have been resolved');
+        case ContentAlign.center:
+          {
+            // Center the content on the screen
+            left = 0;
+            right = 0;
+            top = null;
+            bottom = null;
+            width = ancestorBox.size.width;
+          }
+          break;
         case ContentAlign.custom:
           {
             left = i.customPosition!.left;
