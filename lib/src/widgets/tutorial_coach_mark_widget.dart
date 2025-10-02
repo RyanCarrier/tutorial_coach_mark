@@ -380,7 +380,6 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           minSpace: i.autoAlignmentMinSpace,
         );
       }
-      isAuto = false;
 
       switch (effectiveAlign) {
         case ContentAlign.bottom:
@@ -403,18 +402,14 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           {
             width = positioned.dx - haloWidth;
             left = 0;
-            top = isAuto
-                ? null
-                : positioned.dy - target!.size.height / 2 - haloHeight;
+            top = positioned.dy - target!.size.height / 2 - haloHeight / 2;
             bottom = null;
           }
           break;
         case ContentAlign.right:
           {
             left = positioned.dx + haloWidth;
-            top = isAuto
-                ? null
-                : positioned.dy - target!.size.height / 2 - haloHeight;
+            top = positioned.dy - target!.size.height / 2 - haloHeight / 2;
             bottom = null;
             width = ancestorBox.size.width - left!;
           }
@@ -445,15 +440,6 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       var child = i.builder?.call(context, this) ??
           (i.child ?? const SizedBox.shrink());
 
-      // return isAuto
-      //     ? Align(
-      //         alignment: effectiveAlign.toAlignment(),
-      //         child: Padding(
-      //           padding: i.padding,
-      //           child: child,
-      //         ),
-      //       )
-      //     :
       return Positioned(
         top: top,
         bottom: bottom,

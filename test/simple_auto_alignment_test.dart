@@ -66,10 +66,10 @@ void main() {
     test('Auto alignment selects bottom when target is at top', () {
       // Create a target at the top of the screen
       final target = TargetPosition(const Size(50, 50), const Offset(100, 50));
-      final screenSize = const Size(300, 600);
-      
+      const screenSize = Size(300, 600);
+
       final result = getAutoAlignment(target, screenSize);
-      
+
       // Since target is near the top, should choose bottom
       expect(result, ContentAlign.bottom);
     });
@@ -77,10 +77,10 @@ void main() {
     test('Auto alignment selects top when target is at bottom', () {
       // Create a target at the bottom of the screen
       final target = TargetPosition(const Size(50, 50), const Offset(100, 550));
-      final screenSize = const Size(300, 600);
-      
+      const screenSize = Size(300, 600);
+
       final result = getAutoAlignment(target, screenSize);
-      
+
       // Since target is near the bottom, should choose top
       expect(result, ContentAlign.top);
     });
@@ -88,10 +88,10 @@ void main() {
     test('Auto alignment selects right when target is at left', () {
       // Create a target at the left of the screen
       final target = TargetPosition(const Size(50, 50), const Offset(25, 300));
-      final screenSize = const Size(600, 400);
-      
+      const screenSize = Size(600, 400);
+
       final result = getAutoAlignment(target, screenSize);
-      
+
       // Since target is near the left, should choose right
       expect(result, ContentAlign.right);
     });
@@ -99,10 +99,10 @@ void main() {
     test('Auto alignment selects left when target is at right', () {
       // Create a target at the right of the screen
       final target = TargetPosition(const Size(50, 50), const Offset(550, 300));
-      final screenSize = const Size(600, 400);
-      
+      const screenSize = Size(600, 400);
+
       final result = getAutoAlignment(target, screenSize);
-      
+
       // Since target is near the right, should choose left
       expect(result, ContentAlign.left);
     });
@@ -110,20 +110,26 @@ void main() {
     test('Auto alignment handles center target correctly', () {
       // Create a target at the center of the screen
       final target = TargetPosition(const Size(50, 50), const Offset(275, 275));
-      final screenSize = const Size(600, 600);
+      const screenSize = Size(600, 600);
 
       final result = getAutoAlignment(target, screenSize);
 
       // For a centered target, all spaces should be roughly equal
       // The function should still return a valid alignment
-      expect([ContentAlign.top, ContentAlign.bottom, ContentAlign.left, ContentAlign.right]
-          .contains(result), isTrue);
+      expect(
+          [
+            ContentAlign.top,
+            ContentAlign.bottom,
+            ContentAlign.left,
+            ContentAlign.right
+          ].contains(result),
+          isTrue);
     });
 
     test('Auto alignment respects vertical minimum space', () {
       // Target at top with 50px above
       final target = TargetPosition(const Size(50, 50), const Offset(300, 50));
-      final screenSize = const Size(600, 600);
+      const screenSize = Size(600, 600);
 
       // Require 100px vertical minimum - top has only 50px, so should go bottom
       final result = getAutoAlignment(
@@ -138,7 +144,7 @@ void main() {
     test('Auto alignment respects horizontal minimum space', () {
       // Target at left with 25px to the left
       final target = TargetPosition(const Size(50, 50), const Offset(25, 300));
-      final screenSize = const Size(600, 400);
+      const screenSize = Size(600, 400);
 
       // Require 100px horizontal minimum - left has only 25px, so should go right
       final result = getAutoAlignment(
@@ -153,7 +159,7 @@ void main() {
     test('Auto alignment centers when no side meets requirements', () {
       // Target in center
       final target = TargetPosition(const Size(50, 50), const Offset(275, 275));
-      final screenSize = const Size(600, 600);
+      const screenSize = Size(600, 600);
 
       // Require impossibly large space - should center
       final result = getAutoAlignment(
@@ -168,10 +174,11 @@ void main() {
       expect(result, ContentAlign.center);
     });
 
-    test('Auto alignment with only vertical minimum allows horizontal sides', () {
+    test('Auto alignment with only vertical minimum allows horizontal sides',
+        () {
       // Target at top
       final target = TargetPosition(const Size(50, 50), const Offset(100, 50));
-      final screenSize = const Size(600, 600);
+      const screenSize = Size(600, 600);
 
       // Only vertical minimum set - horizontal sides (left/right) should be allowed
       final result = getAutoAlignment(
@@ -182,14 +189,17 @@ void main() {
 
       // Should choose bottom (most space vertically that meets requirement)
       // or potentially left/right if horizontal space is greater
-      expect([ContentAlign.bottom, ContentAlign.left, ContentAlign.right]
-          .contains(result), isTrue);
+      expect(
+          [ContentAlign.bottom, ContentAlign.left, ContentAlign.right]
+              .contains(result),
+          isTrue);
     });
 
-    test('Auto alignment with only horizontal minimum allows vertical sides', () {
+    test('Auto alignment with only horizontal minimum allows vertical sides',
+        () {
       // Target at left
       final target = TargetPosition(const Size(50, 50), const Offset(25, 300));
-      final screenSize = const Size(600, 600);
+      const screenSize = Size(600, 600);
 
       // Only horizontal minimum set - vertical sides (top/bottom) should be allowed
       final result = getAutoAlignment(
@@ -200,8 +210,11 @@ void main() {
 
       // Should choose right (most space horizontally that meets requirement)
       // or potentially top/bottom if vertical space is greater
-      expect([ContentAlign.right, ContentAlign.top, ContentAlign.bottom]
-          .contains(result), isTrue);
+      expect(
+          [ContentAlign.right, ContentAlign.top, ContentAlign.bottom]
+              .contains(result),
+          isTrue);
     });
   });
 }
+
