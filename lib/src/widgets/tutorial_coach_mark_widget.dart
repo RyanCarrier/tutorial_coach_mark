@@ -249,6 +249,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
     final targetBottom = target.offset.dy + target.size.height;
     final targetLeft = target.offset.dx;
     final targetRight = target.offset.dx + target.size.width;
+    final targetCenterY = target.offset.dy + target.size.height / 2;
 
     // Calculate available space on each side, clamping negatives to zero
     final spaceTop = targetTop.clamp(0, double.infinity).toDouble();
@@ -280,11 +281,35 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       if (minVertical == null || spaceBottom >= minVertical) {
         validSides.add(MapEntry(ContentAlign.bottom, spaceBottom));
       }
+
+      // For left/right alignment, also verify there's enough vertical space
+      // at the target's center position where content will be placed
       if (minHorizontal == null || spaceLeft >= minHorizontal) {
-        validSides.add(MapEntry(ContentAlign.left, spaceLeft));
+        // Check if there's enough vertical space at target center for left alignment
+        if (minVertical != null) {
+          final spaceAboveCenter = targetCenterY.clamp(0, double.infinity).toDouble();
+          final spaceBelowCenter = (screenSize.height - targetCenterY).clamp(0, double.infinity).toDouble();
+          // Need at least minVertical/2 space above and below the center
+          if (spaceAboveCenter >= minVertical / 2 && spaceBelowCenter >= minVertical / 2) {
+            validSides.add(MapEntry(ContentAlign.left, spaceLeft));
+          }
+        } else {
+          validSides.add(MapEntry(ContentAlign.left, spaceLeft));
+        }
       }
+
       if (minHorizontal == null || spaceRight >= minHorizontal) {
-        validSides.add(MapEntry(ContentAlign.right, spaceRight));
+        // Check if there's enough vertical space at target center for right alignment
+        if (minVertical != null) {
+          final spaceAboveCenter = targetCenterY.clamp(0, double.infinity).toDouble();
+          final spaceBelowCenter = (screenSize.height - targetCenterY).clamp(0, double.infinity).toDouble();
+          // Need at least minVertical/2 space above and below the center
+          if (spaceAboveCenter >= minVertical / 2 && spaceBelowCenter >= minVertical / 2) {
+            validSides.add(MapEntry(ContentAlign.right, spaceRight));
+          }
+        } else {
+          validSides.add(MapEntry(ContentAlign.right, spaceRight));
+        }
       }
     }
 
