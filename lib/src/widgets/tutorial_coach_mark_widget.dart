@@ -441,10 +441,10 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           (i.child ?? const SizedBox.shrink());
 
       return Positioned(
-        top: top,
-        bottom: bottom,
-        left: left,
-        right: right,
+        top: top?.clamp(0, double.infinity).toDouble(),
+        bottom: bottom?.clamp(0, double.infinity).toDouble(),
+        left: left?.clamp(0, double.infinity).toDouble(),
+        right: right?.clamp(0, double.infinity).toDouble(),
         child: SizedBox(
           width: width,
           child: Padding(
