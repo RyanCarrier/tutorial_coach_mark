@@ -153,6 +153,16 @@ class TutorialCoachMark {
   /// If true, the tutorial will skip to the next step.
   final bool skipOnTargetNotFound;
 
+  /// Whether to enable dynamic tracking of target position and size changes.
+  /// When enabled, the coach mark will continuously monitor the target widget
+  /// and update the highlight if the target moves or resizes.
+  /// Default is true.
+  final bool enableTargetTracking;
+
+  /// Interval between target position checks when dynamic tracking is enabled.
+  /// Default is 100 milliseconds.
+  final Duration targetTrackingInterval;
+
   OverlayEntry? _overlayEntry;
   ModalRoute?
       _blockBackRoute; // Referencia a la ruta que bloquea el botón "Atrás"
@@ -190,6 +200,8 @@ class TutorialCoachMark {
   /// - [targetWaitTimeout]: Duration to wait for target to appear. Default is 5 seconds.
   /// - [targetWaitInterval]: Interval between retries when waiting for target. Default is 50ms.
   /// - [skipOnTargetNotFound]: Whether to skip when target not found. Default is false (throws exception).
+  /// - [enableTargetTracking]: Whether to enable dynamic tracking of target changes. Default is true.
+  /// - [targetTrackingInterval]: Interval for checking target position changes. Default is 100ms.
   TutorialCoachMark({
     this.targets,
     this.targetsBuilder,
@@ -220,6 +232,8 @@ class TutorialCoachMark {
     this.targetWaitTimeout = const Duration(seconds: 5),
     this.targetWaitInterval = const Duration(milliseconds: 50),
     this.skipOnTargetNotFound = false,
+    this.enableTargetTracking = true,
+    this.targetTrackingInterval = const Duration(milliseconds: 100),
   })  : assert(opacityShadow >= 0 && opacityShadow <= 1),
         assert(
             targets != null || (targetsBuilder != null && targetCount != null),
@@ -261,6 +275,8 @@ class TutorialCoachMark {
           targetWaitTimeout: targetWaitTimeout,
           targetWaitInterval: targetWaitInterval,
           skipOnTargetNotFound: skipOnTargetNotFound,
+          enableTargetTracking: enableTargetTracking,
+          targetTrackingInterval: targetTrackingInterval,
         );
       },
     );

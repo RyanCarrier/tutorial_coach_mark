@@ -35,6 +35,8 @@ class AnimatedFocusLight extends StatefulWidget {
     this.rootOverlay = false,
     this.initialFocus = 0,
     this.backgroundSemanticLabel,
+    this.enableTargetTracking = true,
+    this.targetTrackingInterval = const Duration(milliseconds: 100),
   })  : assert(
             targets != null || (targetsBuilder != null && targetCount != null),
             'Either targets or both targetsBuilder and targetCount must be provided'),
@@ -69,6 +71,8 @@ class AnimatedFocusLight extends StatefulWidget {
   final ImageFilter? imageFilter;
   final int initialFocus;
   final String? backgroundSemanticLabel;
+  final bool enableTargetTracking;
+  final Duration targetTrackingInterval;
 
   @override
   // ignore: no_logic_in_create_state
@@ -93,6 +97,7 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
   double _progressAnimated = 0;
   int nextIndex = 0;
   bool _isAnimating = true;
+  Timer? _trackingTimer;
 
   /// Gets the total number of targets in the tutorial sequence.
   int get totalTargets => widget.targets?.length ?? widget.targetCount ?? 0;
@@ -122,6 +127,7 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
 
   Future<void> _revertAnimation() async {
     _isAnimating = true;
+    _stopTracking();
     _controller.duration = unFocusDuration;
   }
 
@@ -164,8 +170,66 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
 
   @override
   void dispose() {
+    _stopTracking();
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Starts tracking the target position if enabled
+  void _startTracking() {
+    if (!widget.enableTargetTracking) return;
+    _stopTracking();
+
+    _trackingTimer = Timer.periodic(widget.targetTrackingInterval, (_) {
+      _checkTargetPositionChanged();
+    });
+  }
+
+  /// Stops the tracking timer
+  void _stopTracking() {
+    _trackingTimer?.cancel();
+    _trackingTimer = null;
+  }
+
+  /// Checks if the target position has changed and updates state if needed
+  void _checkTargetPositionChanged() {
+    if (_currentFocus < 0 || _isAnimating) return;
+
+    TargetPosition? currentPosition;
+    try {
+      // debugPrint('Checking target position for ${_targetFocus.identify}');
+      currentPosition = getTargetCurrent(
+        _targetFocus,
+        rootOverlay: widget.rootOverlay,
+      );
+      // debugPrint("found position: $currentPosition");
+    } on NotFoundTargetException catch (_) {
+      // debugPrint("Target not found during tracking.");
+      // Target not found, ignore
+      return;
+    }
+
+    if (currentPosition == null || _targetPosition == null) return;
+
+    // Check if position or size has changed
+    final positionChanged = currentPosition.offset != _targetPosition!.offset;
+    final sizeChanged = currentPosition.size != _targetPosition!.size;
+
+    if (positionChanged || sizeChanged) {
+      safeSetState(() {
+        _targetPosition = currentPosition!;
+        _positioned = Offset(
+          currentPosition.offset.dx + (currentPosition.size.width / 2),
+          currentPosition.offset.dy + (currentPosition.size.height / 2),
+        );
+
+        if (currentPosition.size.height > currentPosition.size.width) {
+          _sizeCircle = currentPosition.size.height * 0.6 + _getPaddingFocus();
+        } else {
+          _sizeCircle = currentPosition.size.width * 0.6 + _getPaddingFocus();
+        }
+      });
+    }
   }
 
   void next() => _tapHandler();
@@ -289,6 +353,7 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
 
     await _controller.forward();
     _isAnimating = false;
+    _startTracking();
   }
 
   void _goToFocus(int index) {

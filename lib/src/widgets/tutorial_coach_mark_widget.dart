@@ -41,6 +41,8 @@ class TutorialCoachMarkWidget extends StatefulWidget {
     this.targetWaitTimeout = const Duration(seconds: 5),
     this.targetWaitInterval = const Duration(milliseconds: 50),
     this.skipOnTargetNotFound = false,
+    this.enableTargetTracking = true,
+    this.targetTrackingInterval = const Duration(milliseconds: 100),
   })  : assert(targets != null || targetsBuilder != null),
         assert(targetCount == null || targetCount > 0),
         super(key: key);
@@ -76,6 +78,8 @@ class TutorialCoachMarkWidget extends StatefulWidget {
   final Duration targetWaitTimeout;
   final Duration targetWaitInterval;
   final bool skipOnTargetNotFound;
+  final bool enableTargetTracking;
+  final Duration targetTrackingInterval;
 
   @override
   TutorialCoachMarkWidgetState createState() => TutorialCoachMarkWidgetState();
@@ -89,6 +93,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
   TargetFocus? currentTarget;
   int currentFocusIndex = 0;
   bool _isWaitingForTarget = false;
+  int _retryTargetIndex = -1;
 
   @override
   void initState() {
@@ -224,6 +229,8 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
               setState(() {
                 currentFocusIndex = focusIndex;
                 _isWaitingForTarget = false;
+                _retryTargetIndex =
+                    -1; // Cancel any pending retry from previous target
               });
             },
             removeFocus: () {
@@ -231,6 +238,8 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
                 showContent = false;
               });
             },
+            enableTargetTracking: widget.enableTargetTracking,
+            targetTrackingInterval: widget.targetTrackingInterval,
           ),
           AnimatedOpacity(
             opacity: showContent ? 1 : 0,
@@ -396,9 +405,18 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       } on NotFoundTargetException {
         if (!_isWaitingForTarget) {
           _isWaitingForTarget = true;
+          _retryTargetIndex = currentFocusIndex;
+          final retryIndex = currentFocusIndex; // Capture current index
           // Start retry logic asynchronously
           _getTargetWithRetry(currentTarget!).then((targetPosition) {
+            // Check if we're still on the same target
+            if (_retryTargetIndex != retryIndex ||
+                currentFocusIndex != retryIndex) {
+              debugPrint("Target changed during retry, ignoring result");
+              return;
+            }
             _isWaitingForTarget = false;
+            _retryTargetIndex = -1;
             if (targetPosition == null) {
               // Skip to next target if skipOnTargetNotFound is true
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -408,11 +426,18 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
               // Target found, trigger rebuild
               safeSetState(() {});
             }
-          }).catchError((error) {
+          }).catchError((error, st) {
+            // Check if we're still on the same target
+            if (_retryTargetIndex != retryIndex ||
+                currentFocusIndex != retryIndex) {
+              debugPrint("Target changed during retry, ignoring error");
+              return;
+            }
             _isWaitingForTarget = false;
+            _retryTargetIndex = -1;
             // If skipOnTargetNotFound is false, the exception will be thrown
             // Log the error and skip
-            debugPrint("Error waiting for target: ${error.toString()}");
+            debugPrint("Error waiting for target: ${error.toString()}\n\n$st");
             WidgetsBinding.instance.addPostFrameCallback((_) {
               skip();
             });
