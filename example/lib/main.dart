@@ -18,7 +18,47 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(),
+      home: const DemoListPage(),
+    );
+  }
+}
+
+class DemoListPage extends StatelessWidget {
+  const DemoListPage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tutorial Coach Mark Demos'),
+      ),
+      body: ListView(
+        children: [
+          ListTile(
+            title: const Text('Basic Tutorial Demo'),
+            subtitle: const Text('Standard tutorial with multiple targets'),
+            trailing: const Icon(Icons.arrow_forward),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyHomePage()),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text('Timeout & Retry Demo'),
+            subtitle: const Text('Demonstrates waiting for delayed widgets'),
+            trailing: const Icon(Icons.arrow_forward),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const TimeoutDemoPage()),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -94,7 +134,7 @@ class MyHomePageState extends State<MyHomePage> {
                   width: MediaQuery.of(context).size.width - 50,
                   child: Align(
                     alignment: Alignment.center,
-                     child: Column(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ElevatedButton(
@@ -105,7 +145,8 @@ class MyHomePageState extends State<MyHomePage> {
                         ),
                         const SizedBox(height: 8),
                         ElevatedButton(
-                          child: Text(_useBuilder ? 'Use Static' : 'Use Builder'),
+                          child:
+                              Text(_useBuilder ? 'Use Static' : 'Use Builder'),
                           onPressed: () {
                             setState(() {
                               _useBuilder = !_useBuilder;
@@ -669,5 +710,353 @@ class MyHomePageState extends State<MyHomePage> {
     );
 
     return targets;
+  }
+}
+
+/// Demo page that shows timeout and retry functionality
+class TimeoutDemoPage extends StatefulWidget {
+  const TimeoutDemoPage({Key? key}) : super(key: key);
+
+  @override
+  State<TimeoutDemoPage> createState() => _TimeoutDemoPageState();
+}
+
+class _TimeoutDemoPageState extends State<TimeoutDemoPage> {
+  final GlobalKey _delayedButtonKey = GlobalKey();
+  final GlobalKey _immediateButtonKey = GlobalKey();
+  bool _showDelayedButton = false;
+  late TutorialCoachMark _tutorial;
+  String _statusMessage = 'Ready to start tutorial';
+
+  @override
+  void initState() {
+    super.initState();
+    _createTutorial();
+  }
+
+  void _createTutorial() {
+    _tutorial = TutorialCoachMark(
+      targets: [
+        TargetFocus(
+          identify: "immediate-button",
+          keyTarget: _immediateButtonKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Immediate Target",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "This target is immediately visible.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "delayed-button",
+          keyTarget: _delayedButtonKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Delayed Target",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "This target appears after a delay. The tutorial waited for it!",
+                    style: TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+      // Wait up to 3 seconds for targets to appear
+      targetWaitTimeout: const Duration(seconds: 3),
+      // Check every 100ms
+      targetWaitInterval: const Duration(milliseconds: 100),
+      // Skip targets that don't appear in time (set to false to throw exception)
+      skipOnTargetNotFound: true,
+      colorShadow: Colors.blue,
+      opacityShadow: 0.8,
+      onFinish: () {
+        setState(() {
+          _statusMessage = 'Tutorial finished!';
+        });
+        print("Tutorial finished");
+      },
+      onSkip: () {
+        setState(() {
+          _statusMessage = 'Tutorial skipped';
+        });
+        print("Tutorial skipped");
+        return true;
+      },
+    );
+  }
+
+  void _startTutorialWithDelay() {
+    setState(() {
+      _statusMessage = 'Tutorial started - waiting for delayed button...';
+      _showDelayedButton = false;
+    });
+
+    // Show the tutorial immediately
+    _tutorial.show(context: context);
+
+    // Show the delayed button after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showDelayedButton = true;
+          _statusMessage = 'Delayed button appeared!';
+        });
+      }
+    });
+  }
+
+  void _startTutorialWithoutDelay() {
+    setState(() {
+      _statusMessage = 'Tutorial started - all buttons visible';
+      _showDelayedButton = true;
+    });
+
+    _tutorial.show(context: context);
+  }
+
+  void _startTutorialWithTimeout() {
+    setState(() {
+      _statusMessage =
+          'Tutorial started - button will NOT appear (testing timeout)';
+      _showDelayedButton = false;
+    });
+
+    // Create a tutorial with a shorter timeout
+    final timeoutTutorial = TutorialCoachMark(
+      targets: [
+        TargetFocus(
+          identify: "immediate-button",
+          keyTarget: _immediateButtonKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "First Target",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "delayed-button",
+          keyTarget: _delayedButtonKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "This won't be shown",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+      targetWaitTimeout: const Duration(seconds: 2),
+      targetWaitInterval: const Duration(milliseconds: 100),
+      skipOnTargetNotFound: true, // Skip the missing target
+      colorShadow: Colors.red,
+      opacityShadow: 0.8,
+      onFinish: () {
+        setState(() {
+          _statusMessage =
+              'Tutorial finished (second target was skipped due to timeout)';
+        });
+      },
+    );
+
+    timeoutTutorial.show(context: context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Timeout & Retry Demo'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'Tutorial Configuration:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('• Timeout: 3 seconds'),
+                  const Text('• Retry Interval: 100ms'),
+                  const Text('• Skip on timeout: true'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              _statusMessage,
+              style: const TextStyle(
+                fontSize: 16,
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              key: _immediateButtonKey,
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+              child: const Text(
+                'Always Visible Button',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+            const SizedBox(height: 20),
+            AnimatedOpacity(
+              opacity: _showDelayedButton ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: _showDelayedButton
+                  ? ElevatedButton(
+                      key: _delayedButtonKey,
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                      ),
+                      child: const Text(
+                        'Delayed Button (2s)',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    )
+                  : Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: const Center(
+                        child: Text(
+                          '(Button will appear after 2 seconds)',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 40),
+            const Divider(),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _startTutorialWithDelay,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Start Tutorial\n(with delay)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _startTutorialWithoutDelay,
+                  icon: const Icon(Icons.fast_forward),
+                  label: const Text('Start Tutorial\n(no delay)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _startTutorialWithTimeout,
+                  icon: const Icon(Icons.timer_off),
+                  label: const Text('Test Timeout\n(skip mode)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Try different scenarios:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '1. "with delay" - Tutorial waits for the button\n'
+              '2. "no delay" - Both buttons visible immediately\n'
+              '3. "Test Timeout" - Second target never appears',
+              style: TextStyle(fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
