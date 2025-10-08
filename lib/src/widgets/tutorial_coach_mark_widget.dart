@@ -38,6 +38,9 @@ class TutorialCoachMarkWidget extends StatefulWidget {
     this.imageFilter,
     this.backgroundSemanticLabel,
     this.initialFocus = 0,
+    this.targetWaitTimeout = const Duration(seconds: 5),
+    this.targetWaitInterval = const Duration(milliseconds: 50),
+    this.skipOnTargetNotFound = false,
   })  : assert(targets != null || targetsBuilder != null),
         assert(targetCount == null || targetCount > 0),
         super(key: key);
@@ -70,6 +73,9 @@ class TutorialCoachMarkWidget extends StatefulWidget {
   final ImageFilter? imageFilter;
   final int initialFocus;
   final String? backgroundSemanticLabel;
+  final Duration targetWaitTimeout;
+  final Duration targetWaitInterval;
+  final bool skipOnTargetNotFound;
 
   @override
   TutorialCoachMarkWidgetState createState() => TutorialCoachMarkWidgetState();
@@ -82,6 +88,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
   bool showContent = false;
   TargetFocus? currentTarget;
   int currentFocusIndex = 0;
+  bool _isWaitingForTarget = false;
 
   @override
   void initState() {
@@ -216,6 +223,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
             onNewFocus: (focusIndex) {
               setState(() {
                 currentFocusIndex = focusIndex;
+                _isWaitingForTarget = false;
               });
             },
             removeFocus: () {
@@ -233,6 +241,38 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
         ],
       ),
     );
+  }
+
+  /// Attempts to get the target position with retry logic.
+  ///
+  /// Returns the [TargetPosition] if found within timeout.
+  /// Returns null if not found and [skipOnTargetNotFound] is true.
+  /// Throws [NotFoundTargetException] if not found and [skipOnTargetNotFound] is false.
+  Future<TargetPosition?> _getTargetWithRetry(TargetFocus target) async {
+    final startTime = DateTime.now();
+    NotFoundTargetException? lastException;
+
+    while (DateTime.now().difference(startTime) < widget.targetWaitTimeout) {
+      try {
+        return getTargetCurrent(
+          target,
+          rootOverlay: widget.rootOverlay,
+        );
+      } on NotFoundTargetException catch (e) {
+        lastException = e;
+        // Wait for the specified interval before retrying
+        await Future.delayed(widget.targetWaitInterval);
+      }
+    }
+
+    // Timeout reached
+    if (widget.skipOnTargetNotFound) {
+      debugPrint(
+          "Target not found after timeout, skipping: ${target.identify}");
+      return null;
+    } else {
+      throw lastException ?? NotFoundTargetException(target.identify);
+    }
   }
 
   /// Determines the best alignment for auto positioning based on available space.
@@ -287,10 +327,14 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       if (minHorizontal == null || spaceLeft >= minHorizontal) {
         // Check if there's enough vertical space at target center for left alignment
         if (minVertical != null) {
-          final spaceAboveCenter = targetCenterY.clamp(0, double.infinity).toDouble();
-          final spaceBelowCenter = (screenSize.height - targetCenterY).clamp(0, double.infinity).toDouble();
+          final spaceAboveCenter =
+              targetCenterY.clamp(0, double.infinity).toDouble();
+          final spaceBelowCenter = (screenSize.height - targetCenterY)
+              .clamp(0, double.infinity)
+              .toDouble();
           // Need at least minVertical/2 space above and below the center
-          if (spaceAboveCenter >= minVertical / 2 && spaceBelowCenter >= minVertical / 2) {
+          if (spaceAboveCenter >= minVertical / 2 &&
+              spaceBelowCenter >= minVertical / 2) {
             validSides.add(MapEntry(ContentAlign.left, spaceLeft));
           }
         } else {
@@ -301,10 +345,14 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       if (minHorizontal == null || spaceRight >= minHorizontal) {
         // Check if there's enough vertical space at target center for right alignment
         if (minVertical != null) {
-          final spaceAboveCenter = targetCenterY.clamp(0, double.infinity).toDouble();
-          final spaceBelowCenter = (screenSize.height - targetCenterY).clamp(0, double.infinity).toDouble();
+          final spaceAboveCenter =
+              targetCenterY.clamp(0, double.infinity).toDouble();
+          final spaceBelowCenter = (screenSize.height - targetCenterY)
+              .clamp(0, double.infinity)
+              .toDouble();
           // Need at least minVertical/2 space above and below the center
-          if (spaceAboveCenter >= minVertical / 2 && spaceBelowCenter >= minVertical / 2) {
+          if (spaceAboveCenter >= minVertical / 2 &&
+              spaceBelowCenter >= minVertical / 2) {
             validSides.add(MapEntry(ContentAlign.right, spaceRight));
           }
         } else {
@@ -345,14 +393,33 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           rootOverlay: widget.rootOverlay,
         );
         currentTarget = freshTarget;
-      } on NotFoundTargetException catch (e) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          skip();
-        });
-
-        ///error tutorial exit
-        debugPrint("  error>>>>> e ${e.toString()}");
-        //debugPrintStack(stackTrace: s);
+      } on NotFoundTargetException {
+        if (!_isWaitingForTarget) {
+          _isWaitingForTarget = true;
+          // Start retry logic asynchronously
+          _getTargetWithRetry(currentTarget!).then((targetPosition) {
+            _isWaitingForTarget = false;
+            if (targetPosition == null) {
+              // Skip to next target if skipOnTargetNotFound is true
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                skip();
+              });
+            } else {
+              // Target found, trigger rebuild
+              safeSetState(() {});
+            }
+          }).catchError((error) {
+            _isWaitingForTarget = false;
+            // If skipOnTargetNotFound is false, the exception will be thrown
+            // Log the error and skip
+            debugPrint("Error waiting for target: ${error.toString()}");
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              skip();
+            });
+          });
+        }
+        // Return empty widget while waiting
+        return const SizedBox.shrink();
       }
     }
 

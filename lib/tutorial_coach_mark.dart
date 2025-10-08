@@ -53,11 +53,11 @@ class TutorialCoachMark {
 
   /// Builder function that creates targets dynamically based on index and context.
   /// Either [targets] or [targetsBuilder] must be provided, but not both.
-  /// 
+  ///
   /// The builder function receives:
   /// - [index]: The current target index in the tutorial sequence
   /// - [context]: The current build context for accessing widget state
-  /// 
+  ///
   /// Returns the [TargetFocus] for the given index, or null if the index is out of range.
   final TargetFocus? Function(int index, BuildContext context)? targetsBuilder;
 
@@ -139,6 +139,20 @@ class TutorialCoachMark {
   /// Whether to disable the device back button during the tutorial.
   final bool disableBackButton;
 
+  /// Duration to wait for a target to become visible before timing out.
+  /// When a target is not found, the system will retry finding it at regular intervals
+  /// until this timeout is reached. Default is 5 seconds.
+  final Duration targetWaitTimeout;
+
+  /// Interval between retries when waiting for a target to become visible.
+  /// Default is 50 milliseconds.
+  final Duration targetWaitInterval;
+
+  /// Whether to skip to the next target when a target is not found after timeout.
+  /// If false (default), a [NotFoundTargetException] will be thrown instead.
+  /// If true, the tutorial will skip to the next step.
+  final bool skipOnTargetNotFound;
+
   OverlayEntry? _overlayEntry;
   ModalRoute?
       _blockBackRoute; // Referencia a la ruta que bloquea el botón "Atrás"
@@ -173,6 +187,9 @@ class TutorialCoachMark {
   /// - [initialFocus]: Index of initial focus target. Default is 0.
   /// - [backgroundSemanticLabel]: Semantic label for background overlay.
   /// - [disableBackButton]: Whether to disable device back button. Default is false.
+  /// - [targetWaitTimeout]: Duration to wait for target to appear. Default is 5 seconds.
+  /// - [targetWaitInterval]: Interval between retries when waiting for target. Default is 50ms.
+  /// - [skipOnTargetNotFound]: Whether to skip when target not found. Default is false (throws exception).
   TutorialCoachMark({
     this.targets,
     this.targetsBuilder,
@@ -200,11 +217,15 @@ class TutorialCoachMark {
     this.initialFocus = 0,
     this.backgroundSemanticLabel,
     this.disableBackButton = false,
-  }) : assert(opacityShadow >= 0 && opacityShadow <= 1),
-       assert(targets != null || (targetsBuilder != null && targetCount != null),
-           'Either targets or both targetsBuilder and targetCount must be provided'),
-       assert(!(targets != null && targetsBuilder != null),
-           'Cannot provide both targets and targetsBuilder. Choose one approach.');
+    this.targetWaitTimeout = const Duration(seconds: 5),
+    this.targetWaitInterval = const Duration(milliseconds: 50),
+    this.skipOnTargetNotFound = false,
+  })  : assert(opacityShadow >= 0 && opacityShadow <= 1),
+        assert(
+            targets != null || (targetsBuilder != null && targetCount != null),
+            'Either targets or both targetsBuilder and targetCount must be provided'),
+        assert(!(targets != null && targetsBuilder != null),
+            'Cannot provide both targets and targetsBuilder. Choose one approach.');
 
   OverlayEntry _buildOverlay({bool rootOverlay = false}) {
     return OverlayEntry(
@@ -237,6 +258,9 @@ class TutorialCoachMark {
           imageFilter: imageFilter,
           initialFocus: initialFocus,
           backgroundSemanticLabel: backgroundSemanticLabel,
+          targetWaitTimeout: targetWaitTimeout,
+          targetWaitInterval: targetWaitInterval,
+          skipOnTargetNotFound: skipOnTargetNotFound,
         );
       },
     );
@@ -360,14 +384,14 @@ class TutorialCoachMark {
       }
       return null;
     }
-    
+
     if (targetsBuilder != null && targetCount != null) {
       if (index >= 0 && index < targetCount!) {
         return targetsBuilder!(index, context);
       }
       return null;
     }
-    
+
     return null;
   }
 
