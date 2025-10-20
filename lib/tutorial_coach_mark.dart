@@ -211,7 +211,7 @@ class TutorialCoachMark {
     this.onClickTargetWithTapPosition,
     this.onClickOverlay,
     this.onFinish,
-    this.paddingFocus = 10,
+    this.paddingFocus = 14,
     this.onSkip,
     this.alignSkip = Alignment.bottomRight,
     this.textSkip = "SKIP",

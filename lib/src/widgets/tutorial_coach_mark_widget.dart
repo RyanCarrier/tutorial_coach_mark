@@ -474,8 +474,8 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       haloHeight = target.size.height;
     }
 
-    haloWidth = haloWidth * 0.6 + widget.paddingFocus;
-    haloHeight = haloHeight * 0.6 + widget.paddingFocus;
+    haloWidth = haloWidth * 0.5 + widget.paddingFocus;
+    haloHeight = haloHeight * 0.5 + widget.paddingFocus;
 
     double width = 0.0;
     double? top;
@@ -497,6 +497,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           minSpace: i.autoAlignmentMinSpace,
         );
       }
+      debugPrint("Content effective alignment: $effectiveAlign");
 
       switch (effectiveAlign) {
         case ContentAlign.bottom:
