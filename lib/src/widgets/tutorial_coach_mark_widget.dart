@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:tutorial_coach_mark/src/target/target_content.dart';
 import 'package:tutorial_coach_mark/src/target/target_focus.dart';
@@ -497,7 +498,6 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           minSpace: i.autoAlignmentMinSpace,
         );
       }
-      debugPrint("Content effective alignment: $effectiveAlign");
 
       switch (effectiveAlign) {
         case ContentAlign.bottom:
